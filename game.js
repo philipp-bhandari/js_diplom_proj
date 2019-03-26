@@ -191,3 +191,84 @@ class Level {
     }
 }
 
+class LevelParser {
+    constructor(dict) {
+        this.dict = dict;
+    }
+
+    actorFromSymbol(sym) {
+        if (!sym) {
+            return undefined;
+        }
+
+        if (sym in this.dict) {
+            return this.dict[sym]
+        }
+    }
+
+    obstacleFromSymbol(sym) {
+        if (sym === 'x') {
+            return 'wall';
+        }
+        if (sym === '!') {
+            return 'lava';
+        }
+    }
+
+    createGrid(plan) {
+        if (plan.length === 0) {
+            return [];
+        }
+
+        for (let i = 0; i < plan.length; i++) {
+            plan[i] = plan[i].split('');
+            for (let j = 0; j < plan[i].length; j++) {
+                plan[i][j] = this.obstacleFromSymbol(plan[i][j]);
+            }
+        }
+        return plan;
+    }
+
+    createActors(plan) {
+        let result = [];
+        if (plan.length === 0) {
+            return [];
+        }
+        if (this.dict === undefined) {
+            return [];
+        }
+
+        for (let i = 0; i < plan.length; i++) {
+            plan[i] = plan[i].split('');
+            for (let j = 0; j < plan[i].length; j++) {
+                try {
+                    if (this.actorFromSymbol(plan[i][j]) !== undefined) {
+                        plan[i][j] = this.actorFromSymbol(plan[i][j]);
+                        plan[i][j] = new plan[i][j](new Vector(j, i))
+                    }
+                } catch (err) {
+                    continue;
+                }
+            }
+        }
+
+        for (let string of plan) {
+            for (let simbol of string) {
+                if (!(typeof(simbol) === 'string') && Actor.prototype.isPrototypeOf(simbol)) {
+                    result.push(simbol);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    parse(plan) {
+        let gridPlan = plan.slice();
+        let actorPlan = plan.slice();
+
+        let level = new Level(this.createGrid(gridPlan), this.createActors(actorPlan));
+        return level;
+    }
+
+}
