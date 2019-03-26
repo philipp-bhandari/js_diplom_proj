@@ -37,11 +37,10 @@ class Actor {
         } else {
             throw Error('Переданный аргумент не является вектором');
         }
+    }
 
-        Object.defineProperty(this, 'type', {
-            value: 'actor',
-            writable: false
-        });
+    get type() {
+        return 'actor';
     }
 
     get pos(){ return this._pos }
@@ -97,7 +96,13 @@ class Level {
 
         this.status = null;
         this.finishDelay = 1;
-        this.player = new Actor();
+
+        for (let actor of this.actors) {
+            if (actor.type === 'player') {
+                this.player = actor;
+                break;
+            }
+        }
 
     }
 
@@ -152,33 +157,37 @@ class Level {
         }
     }
 
+    removeActor(actor) {
+        for (let i in this.actors) {
+            if(this.actors[i] === actor) { this.actors.splice(i, 1); }
+        }
+    }
 
+    noMoreActors(type) {
+        if (!type) {
+            if (this.actors.length === 0) {
+                return true;
+            }
+        }
 
+        return this.actors.every(
+            function (actor) {
+                return actor.type !== type;
+            }
+        );
+    }
+
+    playerTouched(type, obj=undefined) {
+        if(type === 'lava' || type === 'fireball') {
+            this.status = 'lost';
+        }
+
+        if (type === 'coin') {
+            this.removeActor(obj);
+            if(this.noMoreActors(type)) {
+                this.status = 'won';
+            }
+        }
+    }
 }
 
-const grid = [
-    [undefined, undefined],
-    ['wall', 'wall']
-];
-
-function MyCoin(title) {
-    this.type = 'coin';
-    this.title = title;
-}
-MyCoin.prototype = Object.create(Actor);
-MyCoin.constructor = MyCoin;
-
-const goldCoin = new MyCoin('Золото');
-const bronzeCoin = new MyCoin('Бронза');
-const player = new Actor();
-const fireball = new Actor();
-
-const level = new Level(grid, [ goldCoin, bronzeCoin, player, fireball ]);
-
-
-// const grid = [
-//     new Array(3),
-//     ['wall', 'wall', 'lava']
-// ];
-// const level = new Level(grid);
-// runLevel(level, DOMDisplay);
