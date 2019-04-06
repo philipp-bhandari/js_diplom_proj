@@ -1,15 +1,15 @@
 'use strict';
 
 class Vector {
-    constructor(x=0, y=0) {
+    constructor(x = 0, y = 0) {
         this.x = x;
         this.y = y;
     }
     plus(vector) {
-        if(vector instanceof Vector) {
-            return new Vector(this.x + vector.x, this.y + vector.y);
+        if (!(vector instanceof Vector)) {
+            throw new Error('Аргумент функции не является вектором.');
         } else {
-            throw Error('Аргумент функции не является вектором.');
+            return new Vector(this.x + vector.x, this.y + vector.y);
         }
     }
     times(n) {
@@ -19,12 +19,13 @@ class Vector {
 
 
 class Actor {
-    constructor(position=new Vector(), size=new Vector(1, 1), speed=new Vector()) {
+    constructor(position = new Vector(), size = new Vector(1, 1), speed = new Vector()) {
 
-        if(position instanceof Vector
+        if(!(position instanceof Vector
             && size instanceof Vector
-            && speed instanceof Vector) {
-
+            && speed instanceof Vector)) {
+            throw Error('Переданный аргумент не является вектором');
+        } else {
             this.size = size;
             this.speed = speed;
 
@@ -33,9 +34,6 @@ class Actor {
             this.right = this.pos.x + this.size.x;
             this.top = this.pos.y;
             this.bottom = this.pos.y + this.size.y;
-
-        } else {
-            throw Error('Переданный аргумент не является вектором');
         }
     }
 
@@ -58,91 +56,78 @@ class Actor {
     }
 
     isIntersect(actor) {
-        if(actor instanceof Actor) {
+        if(!(actor instanceof Actor)) {
+            throw Error('Переданный аргумент не является объектом Actor');
+        } else {
             switch (true) {
                 case actor === this:
                     return false;
                 case (this.left < actor.left && this.right > actor.left && this.top <= actor.top && this.bottom > actor.top) ||
-                    (actor.left < this.left && actor.right > this.left && actor.top <= this.top && actor.bottom > this.top) ||
-                    (this.left <= actor.left && this.right > actor.left && this.top > actor.top && this.top < actor.bottom) ||
-                    (actor.left <= this.left && actor.right > this.left && actor.top > this.top && actor.top < this.bottom) ||
-                    (this.left === actor.left && this.right === actor.right && this.top === actor.top && this.bottom === actor.bottom):
+                (actor.left < this.left && actor.right > this.left && actor.top <= this.top && actor.bottom > this.top) ||
+                (this.left <= actor.left && this.right > actor.left && this.top > actor.top && this.top < actor.bottom) ||
+                (actor.left <= this.left && actor.right > this.left && actor.top > this.top && actor.top < this.bottom) ||
+                (this.left === actor.left && this.right === actor.right && this.top === actor.top && this.bottom === actor.bottom):
                     return true;
                 default:
                     return false;
             }
-        } else {
-            throw Error('Переданный аргумент не является объектом Actor');
         }
     }
 }
 
 
 class Level {
-    constructor(grid=[], actors=[]) {
+    constructor(grid = [], actors = []) {
         this.height = grid.length || 0;
         this.width = 0;
         this.grid = grid;
         this.actors = actors;
 
-        if(this.grid[0]) { // Вычисление максимальной ширины уровня
-            let cellsLen = this.grid.map(function (cell) {
-                return cell.length;
-            });
-            cellsLen = Math.max.apply(null, cellsLen);
-
-            this.width = cellsLen;
-        }
+        let cellsLen = this.grid.map(function (cell) {
+            return cell.length;
+        });
+        this.width = cellsLen.length === 0 ? 0 : Math.max.apply(null, cellsLen);
 
         this.status = null;
         this.finishDelay = 1;
 
-        for (let actor of this.actors) {
-            if (actor.type === 'player') {
-                this.player = actor;
-                break;
-            }
+        if(this.actors) {
+            this.player = this.actors.find(function (actor) {
+                return actor.type === 'player';
+            });
         }
 
     }
 
     isFinished() {
-        switch (true) {
-            case this.status != null && this.finishDelay < 0:
-                return true;
-            case this.status != null && this.finishDelay > 0:
-                return false;
-            default:
-                return false;
-        }
+        return this.status !== null && this.finishDelay < 0;
     }
 
     actorAt(actor) {
-        if(actor instanceof Actor) {
-            if(this.actors === [] || this.actors.length === 1){return undefined;}
-
+        if(!(actor instanceof Actor)) {
+            throw Error('Переданный аргумент не является объектом Actor');
+        } else {
             for (let item of this.actors) {
                 if (actor.isIntersect(item)) {
                     return item;
                 }
             }
-        } else {
-            throw Error('Переданный аргумент не является объектом Actor');
         }
     }
 
     obstacleAt(vector, size) {
-        if(vector instanceof Vector && size instanceof Vector) {
+        if(!(vector instanceof Vector && size instanceof Vector)) {
+            throw Error('Переданный аргумент не является объектом Actor');
+        } else {
             let left = Math.floor(vector.x);
             let right = Math.ceil(vector.x + size.x);
             let top = Math.floor(vector.y);
             let bottom = Math.ceil(vector.y + size.y);
 
-            switch (true) {
-                case left < 0 || right > this.width || top < 0:
-                    return 'wall';
-                case bottom > this.height:
-                    return 'lava';
+            if (left < 0 || right > this.width || top < 0) {
+                return 'wall';
+            } else if (bottom > this.height) {
+                return 'lava';
             }
 
             for (let i = top; i < bottom; i++) {
@@ -152,8 +137,6 @@ class Level {
                     }
                 }
             }
-        } else {
-            throw Error('Переданный аргумент не является объектом Actor');
         }
     }
 
@@ -164,12 +147,6 @@ class Level {
     }
 
     noMoreActors(type) {
-        if (!type) {
-            if (this.actors.length === 0) {
-                return true;
-            }
-        }
-
         return this.actors.every(
             function (actor) {
                 return actor.type !== type;
@@ -177,7 +154,7 @@ class Level {
         );
     }
 
-    playerTouched(type, obj=undefined) {
+    playerTouched(type, obj = undefined) {
         if(type === 'lava' || type === 'fireball') {
             this.status = 'lost';
         }
@@ -197,13 +174,10 @@ class LevelParser {
     }
 
     actorFromSymbol(sym) {
-        if (!sym) {
+        if (typeof sym !== 'string' || !this.dict) {
             return undefined;
         }
-
-        if (sym in this.dict) {
-            return this.dict[sym]
-        }
+        return this.dict[sym];
     }
 
     obstacleFromSymbol(sym) {
@@ -274,7 +248,7 @@ class LevelParser {
 
 
 class Fireball  extends Actor {
-    constructor(pos=new Vector (0,0), speed=new Vector (0,0)) {
+    constructor(pos = new Vector (0,0), speed = new Vector (0,0)) {
         super(pos, new Vector (1, 1), speed)
     }
 
@@ -282,7 +256,7 @@ class Fireball  extends Actor {
         return 'fireball';
     }
 
-    getNextPosition(time=1) {
+    getNextPosition(time = 1) {
         if(this.speed.x === 0 && this.speed.y === 0) {
             return this.pos;
         }
@@ -334,7 +308,7 @@ class FireRain extends Fireball {
 
 
 class Coin extends Actor {
-    constructor(pos=new Vector()) {
+    constructor(pos = new Vector()) {
         super(pos.plus(new Vector(0.2, 0.1)), new Vector (0.6, 0.6));
         this.base = this.pos;
         this.springSpeed = 8;
@@ -346,7 +320,7 @@ class Coin extends Actor {
         return 'coin';
     }
 
-    updateSpring(time=1) {
+    updateSpring(time = 1) {
         this.spring += this.springSpeed * time;
     }
 
@@ -394,6 +368,7 @@ const level =     [
     'xxxxxx                                    x',
     '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
 ];
+
 const newLevel = [];
 for(let string of level){
     string = string.split('');
